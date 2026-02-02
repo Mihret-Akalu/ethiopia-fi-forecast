@@ -9,7 +9,6 @@ This script:
 4. Saves an analysis-ready enriched dataset (Excel)
 5. Produces a data enrichment log
 
-Author: Selam Analytics (Student)
 """
 
 import pandas as pd
