@@ -1,0 +1,40 @@
+venv/# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg
+*.egg-info/
+*.env
+*.venv
+env/
+venv/
+pip-log.txt
+pip-delete-this-directory.txt
+
+# VS Code
+.vscode/
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Python virtual environment
+venv/
+env/
+
+# Data / outputs
+data/raw/
+
+*.xlsx
+*.csv
+
+# Logs
+*.log

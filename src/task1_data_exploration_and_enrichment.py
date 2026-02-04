@@ -1,200 +1,117 @@
-"""
-Task 1: Data Exploration and Enrichment
-Forecasting Financial Inclusion in Ethiopia
-
-This script:
-1. Loads the unified dataset and reference codes from Excel (.xlsx)
-2. Performs basic exploratory analysis
-3. Adds enriched observation, event, and impact_link records
-4. Saves an analysis-ready enriched dataset (Excel)
-5. Produces a data enrichment log
-
-Author: Selam Analytics (Student)
-"""
-
 import pandas as pd
 from datetime import datetime
 from pathlib import Path
 
-# -------------------------------------------------------------------
-# 1. File Paths (ALL RAW DATA ARE EXCEL FILES)
-# -------------------------------------------------------------------
 BASE_DIR = Path(".")
 RAW_DATA_PATH = BASE_DIR / "data/raw/ethiopia_fi_unified_data.xlsx"
 REF_CODES_PATH = BASE_DIR / "data/raw/reference_codes.xlsx"
-OUTPUT_DATA_PATH = BASE_DIR / "data/processed/ethiopia_fi_enriched.xlsx"
+OUTPUT_DATA_PATH = BASE_DIR / "data/processed/ethiopia_fi_enriched.csv"
 LOG_PATH = BASE_DIR / "data/processed/data_enrichment_log.md"
 
-# Ensure processed directory exists
 OUTPUT_DATA_PATH.parent.mkdir(parents=True, exist_ok=True)
 
-# -------------------------------------------------------------------
-# 2. Load Raw Data (Excel-safe)
-# -------------------------------------------------------------------
-
+# Load raw data
 fi = pd.read_excel(RAW_DATA_PATH)
 ref = pd.read_excel(REF_CODES_PATH)
 
-print("Loaded unified dataset with shape:", fi.shape)
-print("Loaded reference codes with shape:", ref.shape)
-
-# -------------------------------------------------------------------
-# 3. Basic Exploration (printed for verification)
-# -------------------------------------------------------------------
-
-print("\nRecord type counts:\n", fi['record_type'].value_counts())
-
-if 'observation_date' in fi.columns:
-    print("\nTemporal range:\n",
-          fi['observation_date'].min(),
-          fi['observation_date'].max())
-
-obs = fi[fi.record_type == "observation"]
-print("\nIndicators available:\n", obs['indicator_code'].unique())
-
-# -------------------------------------------------------------------
-# 4. Helper Function
-# -------------------------------------------------------------------
+print("Loaded unified dataset:", fi.shape)
+print("Loaded reference codes:", ref.shape)
 
 def create_base_record():
-    """Create an empty record matching the unified schema"""
     return {col: None for col in fi.columns}
-
-# -------------------------------------------------------------------
-# 5. Enrichment: New Observation Records
-# -------------------------------------------------------------------
 
 new_records = []
 collection_date = datetime.today().strftime("%Y-%m-%d")
 
-# 5.1 Smartphone penetration (usage enabler)
+# --- Smartphone penetration (usage enabler) ---
 smartphone_data = {
-    2018: 12,
-    2019: 14,
-    2020: 16,
-    2021: 18,
-    2022: 21,
-    2023: 24
+    2018: 12, 2019: 14, 2020: 16, 2021: 18, 2022: 21, 2023: 24
 }
 
 for year, value in smartphone_data.items():
     r = create_base_record()
     r.update({
+        "record_id": f"OBS_SMARTPHONE_{year}",
         "record_type": "observation",
-        "pillar": "usage",
+        "pillar": "USAGE",
         "indicator": "Smartphone penetration (% of adults)",
-        "indicator_code": "smartphone_penetration",
+        "indicator_code": "SMARTPHONE_PENETRATION",
+        "indicator_direction": "higher_better",
         "value_numeric": value,
+        "value_type": "percentage",
+        "unit": "%",
         "observation_date": f"{year}-12-31",
-        "source_name": "GSMA Mobile Economy SSA",
+        "source_name": "GSMA Mobile Economy Sub-Saharan Africa",
+        "source_type": "report",
         "source_url": "https://www.gsma.com/mobileeconomy/",
         "confidence": "medium",
-        "collected_by": "Selam Analytics",
+        "collected_by": "Example_Trainee",
         "collection_date": collection_date,
-        "notes": "Key enabler of digital payment usage"
+        "notes": "Smartphone access is a key enabler of digital payments"
     })
     new_records.append(r)
 
-# 5.2 Mobile money agent density
-agent_density = {
-    2020: 2.1,
-    2021: 3.4,
-    2022: 5.8,
-    2023: 7.2
-}
-
-for year, value in agent_density.items():
-    r = create_base_record()
-    r.update({
-        "record_type": "observation",
-        "pillar": "usage",
-        "indicator": "Mobile money agents per 10,000 adults",
-        "indicator_code": "agent_density",
-        "value_numeric": value,
-        "observation_date": f"{year}-12-31",
-        "source_name": "National Bank of Ethiopia / GSMA",
-        "source_url": "https://www.nbe.gov.et",
-        "confidence": "medium",
-        "collected_by": "Selam Analytics",
-        "collection_date": collection_date,
-        "notes": "Direct driver of transaction activity"
-    })
-    new_records.append(r)
-
-# -------------------------------------------------------------------
-# 6. Enrichment: New Event Record
-# -------------------------------------------------------------------
-
+# --- Fayda Digital ID Event ---
+fayda_id = "EVT_FAYDA_2023"
 fayda_event = create_base_record()
 fayda_event.update({
+    "record_id": fayda_id,
     "record_type": "event",
-    "event_name": "Fayda National Digital ID Rollout",
     "category": "policy",
+    "event_name": "Fayda National Digital ID Rollout",
     "event_date": "2023-01-01",
-    "source_name": "Government of Ethiopia",
+    "source_name": "Government of Ethiopia (INSA)",
+    "source_type": "government",
     "source_url": "https://www.insa.gov.et",
     "confidence": "high",
-    "notes": "Digital ID reduces KYC friction for account opening"
+    "collected_by": "Example_Trainee",
+    "collection_date": collection_date,
+    "notes": "Digital ID rollout reduces KYC friction for account opening"
 })
 new_records.append(fayda_event)
 
-# -------------------------------------------------------------------
-# 7. Enrichment: Impact Link Record
-# -------------------------------------------------------------------
-
+# --- Impact Link ---
 impact_link = create_base_record()
 impact_link.update({
+    "record_id": "IMPACT_FAYDA_ACCESS",
     "record_type": "impact_link",
-    "parent_id": "Fayda National Digital ID Rollout",
-    "pillar": "access",
-    "related_indicator": "acct_ownership_rate",
+    "parent_id": fayda_id,
+    "pillar": "ACCESS",
+    "related_indicator": "ACC_OWNERSHIP",
+    "relationship_type": "causal",
     "impact_direction": "positive",
     "impact_magnitude": "medium",
     "lag_months": 12,
-    "evidence_basis": "Comparable national ID programs in India (Aadhaar) and Kenya"
+    "evidence_basis": "Comparable digital ID programs in India (Aadhaar) and Kenya"
 })
 new_records.append(impact_link)
 
-# -------------------------------------------------------------------
-# 8. Append and Save Enriched Dataset (Excel)
-# -------------------------------------------------------------------
-
+# Append and save
 enriched_fi = pd.concat([fi, pd.DataFrame(new_records)], ignore_index=True)
-enriched_fi.to_excel(OUTPUT_DATA_PATH, index=False)
+enriched_fi.to_csv(OUTPUT_DATA_PATH, index=False, encoding="utf-8")
 
-print("\nEnriched dataset saved to:", OUTPUT_DATA_PATH)
-print("New total records:", enriched_fi.shape[0])
-
-# -------------------------------------------------------------------
-# 9. Write Data Enrichment Log
-# -------------------------------------------------------------------
-
-log_text = f"""
+# Write log safely
+with open(LOG_PATH, "w", encoding="utf-8") as f:
+    f.write(f"""
 # Data Enrichment Log – Task 1
 
 ## Smartphone Penetration (2018–2023)
-Source: GSMA Mobile Economy Sub-Saharan Africa
-Confidence: Medium
-Collected by: Selam Analytics
-Collection date: {collection_date}
-Notes: Smartphone ownership is a strong predictor of digital payment usage
-
-## Mobile Money Agent Density (2020–2023)
-Source: National Bank of Ethiopia, GSMA
-Confidence: Medium
-Collected by: Selam Analytics
-Collection date: {collection_date}
-Notes: Agent density directly affects transaction frequency and cash-out behavior
+Source: GSMA Mobile Economy Sub-Saharan Africa  
+Confidence: Medium  
+Collected by: Example_Trainee  
+Collection date: {collection_date}  
 
 ## Fayda Digital ID Rollout
-Source: Government of Ethiopia / INSA
-Confidence: High
-Collected by: Selam Analytics
-Collection date: {collection_date}
-Notes: Expected to increase account ownership by lowering KYC barriers
-"""
+Source: Government of Ethiopia (INSA)  
+Confidence: High  
+Collected by: Example_Trainee  
+Collection date: {collection_date}  
 
-with open(LOG_PATH, "w", encoding="utf-8") as f:
-    f.write(log_text)
+## Impact Link
+Fayda Digital ID -> Account Ownership (ACCESS pillar)  
+Evidence: India Aadhaar, Kenya Huduma  
+""")
 
-print("Data enrichment log written to:", LOG_PATH)
+print("✅ Task 1 completed successfully.")
+print("Saved enriched data to:", OUTPUT_DATA_PATH)
+print("Saved enrichment log to:", LOG_PATH)
